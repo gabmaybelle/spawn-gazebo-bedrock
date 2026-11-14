@@ -19,8 +19,8 @@
 
 - Later players: the first player to join takes the chest; everyone after them is handed their own
   kit (into their inventory, any overflow at their feet), once each.
-- `/spawn_gazebo:build` (operators): says what it will do where you stand; `/spawn_gazebo:build confirm`
-  within 30 seconds builds it there and moves the spawn and the protection. Refused on top of a gazebo.
+- `/spawn_gazebo:build` (operators): opens a box saying what it will do where you stand, with Build here and
+  Cancel (a tap, for phones); `/spawn_gazebo:build confirm` within two minutes does the same. Refused on a gazebo.
   The headless test runs its steps (refused on the gazebo, built 40 blocks away, every block, the chest).
 
 - Settings (`/spawn_gazebo:settings`, operators, a form; kept in the world): starter chest on or off,
@@ -29,13 +29,13 @@
   the form, so the chest settings count for the build command and later players' kits. The Java
   "spawnGazebo" switch has no Bedrock form: turning the pack off is the same thing.
 - The headless suite: 16 cases, passing on a flat world and two real-terrain seeds.
+- Played on a phone (2026-11-14): the gazebo's look, the corner stairs and the railing are right; the
+  chest holds the kit; survival breaking and placing are refused inside and work outside; the build
+  command's box builds a second gazebo.
 
 ## Open
 
 - The sandstone gazebo and the lava cooling are built but no test seed has reached a desert or lava yet.
-- Corner stairs on the dome and steps, and the railing's look: need eyes in the game.
-- Player breaking and placing can't be checked headless.
 - Fire and pistons: no cancelable stable event.
-- The later players' kit and typing the command need a player: not checkable headless.
-- The form itself (how it looks and saves on a phone) needs a player.
-- Next: release session R: Gabby's look in the game, the listing kit, the public repo.
+- Not yet checked in the game: the settings form on a phone, a second player's kit.
+- Next: release session R: a desert seed in the tests, the name check, the changelog, the listing kit and cross-links.

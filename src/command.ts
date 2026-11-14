@@ -6,6 +6,7 @@ import {
   CustomCommandResult, CustomCommandStatus, StartupEvent,
 } from "@minecraft/server";
 import { build, built } from "./gazebo.js";
+import { openSettings } from "./settings.js";
 import { HALF } from "./templates.js";
 
 const CONFIRM_TICKS = 30 * 20;
@@ -72,5 +73,15 @@ export function registerCommand(ev: StartupEvent): void {
     permissionLevel: CommandPermissionLevel.GameDirectors,
     optionalParameters: [{ name: "spawn_gazebo:confirm", type: CustomCommandParamType.Enum }],
   }, run);
+  ev.customCommandRegistry.registerCommand({
+    name: "spawn_gazebo:settings",
+    description: "Open the Spawn Gazebo settings (operators)",
+    permissionLevel: CommandPermissionLevel.GameDirectors,
+  }, (origin) => {
+    const player = origin.sourceEntity;
+    if (!(player instanceof Player)) return fail("Run this as a player: the settings open as a form.");
+    system.run(() => void openSettings(player));
+    return { status: CustomCommandStatus.Success };
+  });
 }
 

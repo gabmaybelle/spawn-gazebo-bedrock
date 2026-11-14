@@ -23,6 +23,13 @@
   within 30 seconds builds it there and moves the spawn and the protection. Refused on top of a gazebo.
   The headless test runs its steps (refused on the gazebo, built 40 blocks away, every block, the chest).
 
+- Settings (`/spawn_gazebo:settings`, operators, a form; kept in the world): starter chest on or off,
+  what it holds (starter kit, vanilla's bonus chest loot, or any loot table), protection on or off, and
+  the protected radius (7 to 64). The gazebo is built on a world's first load, before anyone can open
+  the form, so the chest settings count for the build command and later players' kits. The Java
+  "spawnGazebo" switch has no Bedrock form: turning the pack off is the same thing.
+- The headless suite: 16 cases, passing on a flat world and two real-terrain seeds.
+
 ## Open
 
 - The sandstone gazebo and the lava cooling are built but no test seed has reached a desert or lava yet.
@@ -30,4 +37,5 @@
 - Player breaking and placing can't be checked headless.
 - Fire and pistons: no cancelable stable event.
 - The later players' kit and typing the command need a player: not checkable headless.
-- Next: the settings form (session 4).
+- The form itself (how it looks and saves on a phone) needs a player.
+- Next: release session R: Gabby's look in the game, the listing kit, the public repo.

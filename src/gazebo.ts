@@ -6,6 +6,7 @@
 // Mirrors the Java edition's GazeboBuilder (the Paper plugin's): same reaches, same order.
 import { world, system, Dimension, Block, BlockVolume, ItemStack, Player, StructureRotation, Vector3 } from "@minecraft/server";
 import { TEMPLATES, WOODS, HALF } from "./templates.js";
+import { settings, lootTable } from "./settings.js";
 
 /** What was built, kept in a world property so it happens once and protection knows where it is. */
 export interface Built {
@@ -243,12 +244,32 @@ export function kitItems(): ItemStack[] {
   ];
 }
 
+/** Rolls a loot table into a chest; false (with a log line) when the game doesn't know the table. */
+function fillFromTable(dim: Dimension, at: Vector3, table: string): boolean {
+  try {
+    if (!dim.runCommand(`loot insert ${at.x} ${at.y} ${at.z} loot "${table}"`).successCount) throw new Error("nothing inserted");
+    return true;
+  } catch (e) {
+    log(`no loot table "${table}" (${e}), using the starter kit`);
+    return false;
+  }
+}
+
 /** The chest in the railing: found after placing, since the turn moves it. */
 function fillChest(dim: Dimension, cx: number, gy: number, cz: number): Vector3 | undefined {
   for (let x = cx - HALF; x <= cx + HALF; x++) {
     for (let z = cz - HALF; z <= cz + HALF; z++) {
       const b = dim.getBlock({ x, y: gy + 3, z });
       if (b?.typeId !== "minecraft:chest") continue;
+      const s = settings();
+      if (!s.starterChest) {
+        // No chest: the railing beside it carries on across its spot.
+        const rail = [b.east(), b.west(), b.north(), b.south()].find((n) => n && /_wall$/.test(n.typeId));
+        b.setType(rail ? rail.typeId : "minecraft:air");
+        return undefined;
+      }
+      const table = lootTable();
+      if (table && fillFromTable(dim, b.location, table)) return b.location;
       const c = b.getComponent("minecraft:inventory")?.container;
       if (c) for (const item of kitItems()) c.addItem(item);
       return b.location;
@@ -328,7 +349,18 @@ export function welcome(player: Player): void {
     setClaimed(true);
     return;
   }
-  // Into their inventory; whatever doesn't fit drops at their feet.
+  // A roll of the chest's loot table, or the starter kit: into their inventory, whatever doesn't fit
+  // dropping at their feet.
+  const table = lootTable();
+  if (table) {
+    try {
+      if (!player.runCommand(`loot give @s loot "${table}"`).successCount) throw new Error("nothing given");
+      log(`handed ${player.name} a roll of ${table}`);
+      return;
+    } catch (e) {
+      log(`no loot table "${table}" (${e}), handing the starter kit`);
+    }
+  }
   const inv = player.getComponent("minecraft:inventory")?.container;
   for (const item of kitItems()) {
     const left = inv ? inv.addItem(item) : item;

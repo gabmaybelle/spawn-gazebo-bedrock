@@ -1,7 +1,8 @@
 // Spawn Gazebo for Bedrock: every new world starts in a little round stone gazebo.
 import { world, system } from "@minecraft/server";
 import { build, buildWhenReady, built, welcome } from "./gazebo.js";
-import { guard } from "./guard.js";
+import { guard, inside } from "./guard.js";
+import { settings, saveSettings } from "./settings.js";
 import { gazeboNear, registerCommand } from "./command.js";
 
 export const VERSION = "0.1.0";
@@ -21,6 +22,15 @@ world.afterEvents.playerSpawn.subscribe((ev) => {
 const reply = (o: object) => system.sendScriptEvent("spawn_gazebo:debug_reply", JSON.stringify({ built: built(), spawn: world.getDefaultSpawnLocation(), ...o }));
 system.afterEvents.scriptEventReceive.subscribe((ev) => {
   if (ev.id === "spawn_gazebo:debug") reply({});
+  // The form's save, without a form: the settings as JSON (only the keys given change).
+  if (ev.id === "spawn_gazebo:debug_settings") {
+    saveSettings({ ...settings(), ...JSON.parse(ev.message) });
+    reply({ settings: settings() });
+  }
+  if (ev.id === "spawn_gazebo:debug_inside") {
+    const [x, y, z] = ev.message.split(" ").map(Number);
+    reply({ inside: inside({ x, y, z }) });
+  }
   if (ev.id === "spawn_gazebo:debug_build") {
     const [x, z] = ev.message.split(" ").map(Number);
     const dim = world.getDimension("minecraft:overworld");

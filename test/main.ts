@@ -15,7 +15,7 @@ const wait = (ticks: number) => new Promise<void>((r) => system.runTimeout(() =>
 const overworld = () => world.getDimension("minecraft:overworld");
 
 interface Built { x: number; y: number; z: number; wood: string; palette: string; rotation: string; chest?: Vector3 }
-type Reply = { built: Built | null; spawn: Vector3; refused?: boolean };
+type Reply = { built: Built | null; spawn: Vector3; refused?: boolean; inside?: boolean };
 let reply: ((r: Reply) => void) | undefined;
 system.afterEvents.scriptEventReceive.subscribe((ev) => {
   if (ev.id === "spawn_gazebo:debug_reply") {
@@ -126,6 +126,33 @@ async function run(args: string[]) {
     pass("command blocks", second.ok === second.total, `${second.ok} of ${second.total} match` + (second.wrong.length ? "; " + second.wrong.slice(0, 5).join("; ") : ""));
     const c2 = nb.chest && dim.getBlock(nb.chest)?.getComponent("minecraft:inventory")?.container;
     pass("command chest", !!c2 && c2.emptySlotsCount === c2.size - 5, c2 ? `${c2.size - c2.emptySlotsCount} stacks` : "no chest");
+
+    // The settings, saved as the form saves them.
+    const setTo = (s: object) => ask(`spawn_gazebo:debug_settings ${JSON.stringify(s)}`);
+    const isInside = async (x: number) => (await ask(`spawn_gazebo:debug_inside ${x} ${nb.y} ${nb.z}`)).inside;
+    await setTo({ protectedRadius: 20 });
+    const in20 = await isInside(nb.x + 20), out21 = await isInside(nb.x + 21);
+    pass("settings radius", in20 === true && out21 === false, `20 out ${in20 ? "in" : "out"}, 21 out ${out21 ? "in" : "out"}`);
+    await setTo({ protectGazebo: false });
+    const off = await isInside(nb.x);
+    pass("settings protection off", off === false, `the middle is ${off ? "still" : "no longer"} protected`);
+    await setTo({ protectGazebo: true, protectedRadius: 12 });
+
+    await setTo({ chestLoot: "bonus_chest" });
+    const bonus = (await ask(`spawn_gazebo:debug_build ${b.x} ${b.z + 40}`)).built!;
+    const bc = bonus.chest && dim.getBlock(bonus.chest)?.getComponent("minecraft:inventory")?.container;
+    const loot: string[] = [];
+    if (bc) for (let i = 0; i < bc.size; i++) { const it = bc.getItem(i); if (it) loot.push(it.typeId.replace("minecraft:", "")); }
+    pass("settings bonus chest", loot.length > 0 && !loot.includes("bundle"), loot.join(", ") || "empty");
+
+    await setTo({ starterChest: false, chestLoot: "starter_kit" });
+    const bare = (await ask(`spawn_gazebo:debug_build ${b.x + 40} ${b.z + 40}`)).built!;
+    let chests = 0;
+    for (let x = bare.x - HALF; x <= bare.x + HALF; x++) for (let z = bare.z - HALF; z <= bare.z + HALF; z++) {
+      if (dim.getBlock({ x, y: bare.y + 3, z })?.typeId === "minecraft:chest") chests++;
+    }
+    pass("settings no chest", !bare.chest && chests === 0, `${chests} chests in the gazebo`);
+    await setTo({ starterChest: true });
   } catch (e) {
     pass("run", false, String(e));
   } finally {

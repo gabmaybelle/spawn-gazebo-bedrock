@@ -31,11 +31,11 @@
 - The headless suite: 16 cases, passing on a flat world and two real-terrain seeds.
 - Played on a phone (2026-11-14): the gazebo's look, the corner stairs and the railing are right; the
   chest holds the kit; survival breaking and placing are refused inside and work outside; the build
-  command's box builds a second gazebo.
+  command's box builds a second gazebo; the settings form fits and saves; a badlands spawn got the sandstone gazebo.
 
 ## Open
 
-- The sandstone gazebo and the lava cooling are built but no test seed has reached a desert or lava yet.
+- The lava cooling is built but untested in a world.
 - Fire and pistons: no cancelable stable event.
-- Not yet checked in the game: the settings form on a phone, a second player's kit.
-- Next: release session R: a desert seed in the tests, the name check, the changelog, the listing kit and cross-links.
+- Not yet checked in the game: a second player's kit (needs two players).
+- Next: the v0.1.0 release (changelog and listing kit written).

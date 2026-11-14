@@ -53,7 +53,10 @@ fs.writeFileSync(propsPath, props);
 
 console.log(`starting the server on port ${port} (${type}${seed ? ', seed ' + seed : ''}), up to ${seconds} s`);
 const log = [];
-const child = cp.spawn(exe, [], { cwd: folder, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
+// On Linux the server loads its own libraries from its folder, and the zip doesn't keep it executable.
+if (process.platform !== 'win32') fs.chmodSync(exe, 0o755);
+const env = { ...process.env, LD_LIBRARY_PATH: folder };
+const child = cp.spawn(exe, [], { cwd: folder, env, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
 let started = false, spawnArea = false, built = false, done = false, stopped = false;
 const send = (cmd) => { console.log('> ' + cmd); child.stdin.write(cmd + '\n'); };
 const stop = () => { if (stopped) return; stopped = true; try { send('stop'); } catch {} setTimeout(() => { try { child.kill(); } catch {} }, 15000); };

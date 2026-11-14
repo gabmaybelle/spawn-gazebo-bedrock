@@ -2,7 +2,9 @@
 # - the build (it clones the Java edition's repo at the commit in java-source.json and makes every
 #   gazebo from its generator), attached to the run as the .mcaddon
 # - the scripts against the script API typings (npm run typecheck)
-# The self-test on a Bedrock Dedicated Server (tools/bds-check.js) is run before a release, not here.
+# - the self-test on Bedrock Dedicated Server (tools/bds-check.js): the gazebo built on a fresh
+#   flat world and on a real-terrain seed, every case passing with no error or warning lines.
+#   Running it downloads the server from minecraft.net, which accepts Mojang's EULA for it.
 
 name: checks
 on:
@@ -19,6 +21,10 @@ concurrency:
 
 permissions:
   contents: read
+
+env:
+  # The server version the self-test runs on; the same as the local test server.
+  BDS_VERSION: 1.26.63.1
 
 jobs:
   checks:
@@ -39,6 +45,21 @@ jobs:
         run: npm run build
       - name: typecheck
         run: npm run typecheck
+      - name: cache the Bedrock server
+        id: bds-cache
+        uses: actions/cache@v4
+        with:
+          path: bds.zip
+          key: bds-linux-${{ env.BDS_VERSION }}
+      - name: download the Bedrock server
+        if: steps.bds-cache.outputs.cache-hit != 'true'
+        run: |
+          url="https://www.minecraft.net/bedrockdedicatedserver/bin-linux/bedrock-server-${BDS_VERSION}.zip"
+          curl -fsSL -A "Mozilla/5.0" -o bds.zip "$url"
+      - name: self-test on a flat world
+        run: node tools/bds-check.js server --zip bds.zip --seconds 300
+      - name: self-test on real terrain (seed 42, a dark forest)
+        run: node tools/bds-check.js server --type DEFAULT --seed 42 --expect "stone dark_oak" --seconds 300
       - name: upload the add-on
         uses: actions/upload-artifact@v7
         with:

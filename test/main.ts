@@ -15,7 +15,8 @@ const wait = (ticks: number) => new Promise<void>((r) => system.runTimeout(() =>
 const overworld = () => world.getDimension("minecraft:overworld");
 
 interface Built { x: number; y: number; z: number; wood: string; palette: string; rotation: string; chest?: Vector3 }
-let reply: ((r: { built: Built | null; spawn: Vector3 }) => void) | undefined;
+type Reply = { built: Built | null; spawn: Vector3; refused?: boolean };
+let reply: ((r: Reply) => void) | undefined;
 system.afterEvents.scriptEventReceive.subscribe((ev) => {
   if (ev.id === "spawn_gazebo:debug_reply") {
     const f = reply;
@@ -24,9 +25,9 @@ system.afterEvents.scriptEventReceive.subscribe((ev) => {
   }
   if (ev.id === "spawn_gazebo:test") void run(ev.message.trim().split(/\s+/).filter(Boolean));
 });
-const ask = () => new Promise<{ built: Built | null; spawn: Vector3 }>((resolve) => {
+const ask = (what = "spawn_gazebo:debug") => new Promise<Reply>((resolve) => {
   reply = resolve;
-  overworld().runCommand("scriptevent spawn_gazebo:debug");
+  overworld().runCommand("scriptevent " + what);
 });
 
 // The four ways a square template can land when turned about itself.
@@ -113,6 +114,18 @@ async function run(args: string[]) {
     const after = compare(b);
     pass("blasts inside", after.ok === before.ok, `${after.ok} of ${before.ok} still match`);
     pass("blast outside", dim.getBlock(far)?.typeId !== farBefore, `the block 20 out was ${farBefore}, is ${dim.getBlock(far)?.typeId}`);
+
+    // The build command's steps: refused on top of the gazebo, built 40 blocks away, where the
+    // spawn and the protection then move.
+    const on = await ask(`spawn_gazebo:debug_build ${b.x + 3} ${b.z}`);
+    pass("command refuses on a gazebo", on.refused === true && on.built?.x === b.x, on.refused ? "refused" : "built anyway");
+    const away = await ask(`spawn_gazebo:debug_build ${b.x - 40} ${b.z}`);
+    const nb = away.built!;
+    pass("command builds", away.refused === false && nb.x === b.x - 40 && away.spawn.x === nb.x && away.spawn.y === nb.y + 3, `${nb.palette} ${nb.wood} at ${nb.x} ${nb.y} ${nb.z}, spawn ${away.spawn.x} ${away.spawn.y} ${away.spawn.z}`);
+    const second = compare(nb);
+    pass("command blocks", second.ok === second.total, `${second.ok} of ${second.total} match` + (second.wrong.length ? "; " + second.wrong.slice(0, 5).join("; ") : ""));
+    const c2 = nb.chest && dim.getBlock(nb.chest)?.getComponent("minecraft:inventory")?.container;
+    pass("command chest", !!c2 && c2.emptySlotsCount === c2.size - 5, c2 ? `${c2.size - c2.emptySlotsCount} stacks` : "no chest");
   } catch (e) {
     pass("run", false, String(e));
   } finally {

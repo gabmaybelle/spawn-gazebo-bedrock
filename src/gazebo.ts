@@ -4,7 +4,7 @@
 // footprint is cleared, anything over a drop gets a foundation, lava near the surface sets to stone,
 // and the spawn point moves to the middle, so new players wake up under the spore blossom.
 // Mirrors the Java edition's GazeboBuilder (the Paper plugin's): same reaches, same order.
-import { world, system, Dimension, Block, BlockVolume, ItemStack, StructureRotation, Vector3 } from "@minecraft/server";
+import { world, system, Dimension, Block, BlockVolume, ItemStack, Player, StructureRotation, Vector3 } from "@minecraft/server";
 import { TEMPLATES, WOODS, HALF } from "./templates.js";
 
 /** What was built, kept in a world property so it happens once and protection knows where it is. */
@@ -262,8 +262,13 @@ function fillChest(dim: Dimension, cx: number, gy: number, cz: number): Vector3 
 
 const ROTATIONS = [StructureRotation.None, StructureRotation.Rotate90, StructureRotation.Rotate180, StructureRotation.Rotate270];
 
-/** Builds the gazebo centred on this column and moves the world spawn to it. */
-function* build(dim: Dimension, cx: number, cz: number): Generator<void, void, void> {
+/**
+ * Builds the gazebo centred on this column and moves the world spawn and the protection to it (an
+ * older gazebo stays standing, unprotected). {@code claimed}: the chest is for the players already
+ * here, so every newcomer is handed their own kit. Players inside the new gazebo's box are moved
+ * onto its floor.
+ */
+export function* build(dim: Dimension, cx: number, cz: number, claimed: boolean): Generator<void, void, void> {
   const gy = groundY(dim, cx, cz);
   if (gy === undefined) throw new Error(`no ground at ${cx} ${cz}`);
   const biome = biomeId(dim, { x: cx, y: gy, z: cz });
@@ -291,10 +296,45 @@ function* build(dim: Dimension, cx: number, cz: number): Generator<void, void, v
   }
   remember({ x: cx, y: gy, z: cz, wood: survey.wood, palette, rotation, chest });
   log(`built the ${palette} gazebo in ${survey.wood} at ${cx} ${gy} ${cz} (${biome}, turned ${rotation})`);
-  // Whoever is already in the world (the one who made it) moves in too.
+  const here = world.getAllPlayers();
+  // The chest is for whoever is here now; a world with nobody in it yet keeps it for its first player.
+  setClaimed(claimed || here.length > 0);
+  for (const p of here) p.setDynamicProperty(JOINED, true);
+  // On a new world, whoever is in it (the one who made it) moves in; with the command, whoever the
+  // gazebo was built on (in its plinth, say).
   for (const p of dim.getPlayers()) {
-    p.teleport({ x: cx + 0.5, y: gy + 3, z: cz + 0.5 }, { dimension: dim });
+    const l = p.location;
+    const inBox = Math.abs(l.x - (cx + 0.5)) <= HALF + 1 && Math.abs(l.z - (cz + 0.5)) <= HALF + 1 && l.y >= gy - DEPTH && l.y <= gy + HEIGHT;
+    if (!claimed || inBox) p.teleport({ x: cx + 0.5, y: gy + 3, z: cz + 0.5 }, { dimension: dim });
   }
+}
+
+// ------------------------------------------------------------------ later players' kit
+
+const JOINED = "spawn_gazebo:joined"; // a player property: this player has been here since the gazebo
+const CLAIMED = "spawn_gazebo:claimed"; // a world property: the chest's kit has been taken
+const setClaimed = (v: boolean) => world.setDynamicProperty(CLAIMED, v);
+
+/**
+ * A player's first join after the gazebo is built: the first player gets the chest; everyone after
+ * them is handed their own kit, the same items.
+ */
+export function welcome(player: Player): void {
+  const b = built();
+  if (!b || !b.wood || player.getDynamicProperty(JOINED)) return;
+  player.setDynamicProperty(JOINED, true);
+  if (!b.chest) return;
+  if (!world.getDynamicProperty(CLAIMED)) {
+    setClaimed(true);
+    return;
+  }
+  // Into their inventory; whatever doesn't fit drops at their feet.
+  const inv = player.getComponent("minecraft:inventory")?.container;
+  for (const item of kitItems()) {
+    const left = inv ? inv.addItem(item) : item;
+    if (left) player.dimension.spawnItem(left, player.location);
+  }
+  log(`handed ${player.name} their own starter kit`);
 }
 
 /**
@@ -319,7 +359,7 @@ export function buildWhenReady(): void {
       return;
     }
     running = true;
-    const job = build(dim, sp.x, sp.z);
+    const job = build(dim, sp.x, sp.z, false);
     system.runJob((function* () {
       try {
         yield* job;

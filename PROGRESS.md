@@ -17,10 +17,17 @@
   every block of the template in place, spawn, chest, no lava, TNT and a creeper inside change nothing,
   TNT outside still digs.
 
+- Later players: the first player to join takes the chest; everyone after them is handed their own
+  kit (into their inventory, any overflow at their feet), once each.
+- `/spawn_gazebo:build` (operators): says what it will do where you stand; `/spawn_gazebo:build confirm`
+  within 30 seconds builds it there and moves the spawn and the protection. Refused on top of a gazebo.
+  The headless test runs its steps (refused on the gazebo, built 40 blocks away, every block, the chest).
+
 ## Open
 
 - The sandstone gazebo and the lava cooling are built but no test seed has reached a desert or lava yet.
 - Corner stairs on the dome and steps, and the railing's look: need eyes in the game.
 - Player breaking and placing can't be checked headless.
 - Fire and pistons: no cancelable stable event.
-- Next: later players' kit, the build command for old worlds, the settings form.
+- The later players' kit and typing the command need a player: not checkable headless.
+- Next: the settings form (session 4).

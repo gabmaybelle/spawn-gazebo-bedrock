@@ -1,0 +1,15 @@
+{
+  "name": "spawn-gazebo-bedrock",
+  "version": "0.1.0",
+  "description": "Spawn Gazebo for Minecraft Bedrock: every new world starts in a little round stone gazebo.",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "build": "node tools/build.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@minecraft/server": "2.10.0",
+    "typescript": "5.9.3"
+  }
+}

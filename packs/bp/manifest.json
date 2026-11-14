@@ -1,0 +1,35 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Spawn Gazebo",
+    "description": "Every new world starts in a little round stone gazebo, built from the wood growing around you.",
+    "uuid": "631810c1-dbaf-4fb5-a768-0da867681623",
+    "version": [0, 1, 0],
+    "min_engine_version": [1, 26, 0]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "a2158cc0-c053-42e1-b559-f54b61dfed7a",
+      "version": [0, 1, 0]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "uuid": "644e7851-942f-489a-87ef-b5b111dc5fc9",
+      "version": [0, 1, 0],
+      "entry": "scripts/main.js"
+    }
+  ],
+  "dependencies": [
+    {
+      "module_name": "@minecraft/server",
+      "version": "2.10.0"
+    }
+  ],
+  "metadata": {
+    "authors": ["Gabby"],
+    "license": "MIT",
+    "url": "https://github.com/gabmaybelle/spawn-gazebo-bedrock"
+  }
+}

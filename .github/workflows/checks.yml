@@ -1,0 +1,47 @@
+# Checks Spawn Gazebo for Bedrock on every push and pull request, from a clean copy:
+# - the build (it clones the Java edition's repo at the commit in java-source.json and makes every
+#   gazebo from its generator), attached to the run as the .mcaddon
+# - the scripts against the script API typings (npm run typecheck)
+# The self-test on a Bedrock Dedicated Server (tools/bds-check.js) is run before a release, not here.
+
+name: checks
+on:
+  push:
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+  pull_request:
+
+# A newer push to the same branch stops the run it replaces.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    # A pull request from a branch in this repo is already checked by its push; only check forks' twice.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v6
+      - name: setup node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+      - name: install
+        run: npm ci
+      - name: build
+        run: npm run build
+      - name: typecheck
+        run: npm run typecheck
+      - name: upload the add-on
+        uses: actions/upload-artifact@v7
+        with:
+          name: SpawnGazebo-mcaddon
+          path: dist/*.mcaddon
+          if-no-files-found: error
